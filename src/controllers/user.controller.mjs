@@ -1,8 +1,7 @@
-import res from "express/lib/response";
+
 import { User } from "../models/user.model.mjs";
 import { ApiError } from "../utils/ApiError.mjs";
 import { asyncHandler } from "../utils/asyncHandler.mjs";
-
 import {uploadOnCloudinary} from '../utils/cloudinary.mjs'
 import { ApiResponse } from "../utils/ApiResponse.mjs";
 const registerUser =  asyncHandler(async(req,res)=>{
@@ -11,34 +10,28 @@ const registerUser =  asyncHandler(async(req,res)=>{
     if([fullName,email,username,password].some((field)=>field?.trim() === "")){
      throw new  ApiError(400,"All Field are required")
     }
-
- 
     // check if user is already exist 
     const  existUser = await User.findOne({ $or:[{username},{email}]})
-})
-
 if(existUser){
     throw new ApiError(400,"User is already exist")
 }
 const avatarLocalPath = req.files?.avatar[0]?.path
 const coverImageLocalPath = req.files?.coverImage[0]?.path
-
-
 const avatar = await uploadOnCloudinary(avatarLocalPath)
 const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 if(!avatar){
     throw new ApiError(400,"Avatar filed is required")
 }
-const user = User.create({
+const user =await User.create({
     fullName,
     email,
-    username:username.toLowerCase(),
+    username:username,
     password,
-    avatar:avatar.url,
-    coverImage:coverImage?.url || "",
+    avatar:"",
+    coverImage:"",
     
 })
-const createdUser  = User.findById(user._id).select(
+const createdUser  = await User.findById(user._id).select(
     "-password -refreshtoken"
 )
 
@@ -49,5 +42,6 @@ if(!createdUser){
 res.status(201).json(
     new ApiResponse(200,createdUser,"User is created successfully")
 )
+})
 
 export {registerUser}
